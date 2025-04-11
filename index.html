@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 0 10px;
+        }
+        .task-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .task-form input, .task-form select, .task-form button {
+            padding: 5px;
+        }
+        .task-list {
+            list-style: none;
+            padding: 0;
+        }
+        .task-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .low { background-color: #d4edda; }
+        .medium { background-color: #fff3cd; }
+        .high { background-color: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h1>To-Do List</h1>
+    <div class="task-form">
+        <input type="text" id="taskName" placeholder="Task name" required>
+        <select id="taskPriority">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+        </select>
+        <input type="datetime-local" id="taskReminder">
+        <button onclick="addTask()">Create New Task</button>
+    </div>
+    <ul class="task-list" id="taskList"></ul>
+
+    <script>
+        // Request notification permission on page load
+        if (Notification.permission !== "granted") {
+            Notification.requestPermission();
+        }
+
+        // Array to store tasks
+        let tasks = loadTasks();
+
+        // Load tasks from localStorage
+        function loadTasks() {
+            const savedTasks = localStorage.getItem("tasks");
+            return savedTasks ? JSON.parse(savedTasks) : [];
+        }
+
+        // Save tasks to localStorage
+        function saveTasks() {
+            localStorage.setItem("tasks", JSON.stringify(tasks));
+        }
+
+        // Render tasks on page load
+        renderTasks();
+        tasks.forEach(task => scheduleNotification(task));
+
+        function addTask() {
+            const name = document.getElementById("taskName").value;
+            const priority = document.getElementById("taskPriority").value;
+            const reminder = document.getElementById("taskReminder").value;
+
+            if (!name) {
+                alert("Please enter a task name!");
+                return;
+            }
+
+            const task = {
+                id: Date.now(), // Unique ID based on timestamp
+                name,
+                priority,
+                reminder: reminder ? new Date(reminder).getTime() : null
+            };
+
+            tasks.push(task);
+            renderTasks();
+            saveTasks(); // Save to localStorage
+            scheduleNotification(task);
+            clearForm();
+        }
+
+        function renderTasks() {
+            const taskList = document.getElementById("taskList");
+            taskList.innerHTML = "";
+            tasks.forEach(task => {
+                const li = document.createElement("li");
+                li.className = `task-item ${task.priority}`;
+                li.innerHTML = `<strong>${task.name}</strong><br>
+                                Priority: ${task.priority}<br>
+                                Reminder: ${task.reminder ? new Date(task.reminder).toLocaleString() : "None"}`;
+                taskList.appendChild(li);
+            });
+        }
+
+        function scheduleNotification(task) {
+            if (!task.reminder || Notification.permission !== "granted") return;
+
+            const now = Date.now();
+            const timeUntilReminder = task.reminder - now;
+
+            if (timeUntilReminder > 0) {
+                setTimeout(() => {
+                    new Notification(`Reminder: ${task.name}`, {
+                        body: `Priority: ${task.priority}`,
+                    });
+                }, timeUntilReminder);
+            }
+        }
+
+        function clearForm() {
+            document.getElementById("taskName").value = "";
+            document.getElementById("taskPriority").value = "low";
+            document.getElementById("taskReminder").value = "";
+        }
+    </script>
+</body>
+</html>
